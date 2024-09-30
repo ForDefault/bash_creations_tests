@@ -20,6 +20,7 @@ while read -r count spaces; do
     echo "Total amount of lines with this number: $space_count"
     echo "-------------------------------------------"
 done < leading_spaces_analysis.txt
-cat lshw_output.txt
+cat leading_spaces_analysis.txt
 # Remove temporary files if necessary
 rm lshw_output.txt
+rm leading_spaces_analysis.txt
