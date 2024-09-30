@@ -73,7 +73,7 @@ grep -vFf lshw_output1.txt "$target_file" > temp_file && mv temp_file "$target_f
 
 # Step 3: Remove the lshw_output1.txt file
 rm lshw_output1.txt
-sed -i '/==============================/d' cleaned_output.txt
+grep -F '==============================' cleaned_output.txt | while read -r line; do sed -i "\|$line|d" cleaned_output.txt; done
 
 # Optional: Show the modified target file
 cat "$target_file"
