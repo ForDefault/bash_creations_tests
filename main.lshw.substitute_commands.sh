@@ -1,6 +1,16 @@
 #!/bin/bash
+
+# This system generates substitute commands linking blocks (e.g., $Linput.1) 
+# and descriptors (e.g., product.092.1) with unique identifiers for easy querying and structure.
+# $Linput.1=$(input:1)=$input.1.092 identifies a block called input:1, assigning it a unique ID 
+# of .092.
+# Inside this block, descriptors like product and physical_id are numbered sequentially (e.g., 
+# .092.1, .092.2).
+# The descriptors (e.g., product.092.1) are linked to their values, 
+# like output.092.1=$(Power Button) for easy querying.
+
+
 lshw > lshw_output.txt
-# Input: File containing original lines with disk/partition details
 input_file="lshw_output.txt"  # Change to the actual file you're using
 output_file="substitute_commands.txt"
 spacing_file="spacing_data.txt"
@@ -53,8 +63,8 @@ while IFS= read -r line; do
             # Generate unique numbering for the descriptor within the current block
             descriptor_sub_id=$(printf "%d" "$descriptor_counter")
 
-            # Use the current block number for the descriptor line
-            clean_descriptor=$(echo "$line" | cut -d':' -f1 | sed 's/^\s*//')  # Get the descriptor name (before ":")
+            # Replace spaces in the descriptor name with underscores
+            clean_descriptor=$(echo "$line" | cut -d':' -f1 | sed 's/^\s*//' | tr ' ' '_')  # Get descriptor name, replace spaces with underscores
             descriptor_value=$(echo "$line" | cut -d':' -f2- | sed 's/^\s*//')  # Get the descriptor value (after ":")
 
             # Build the descriptor substitute command: link to block number and descriptor sub-ID
@@ -75,6 +85,11 @@ done < "$input_file"
 
 # Output the result to verify the output
 cat "$output_file"
+
+# Clean up and confirm completion
+echo "Substitute commands have been generated and saved in $output_file."
+echo "Spacing data has been saved in $spacing_file."
+
 
 # Clean up and confirm completion
 echo "Substitute commands have been generated and saved in $output_file."
