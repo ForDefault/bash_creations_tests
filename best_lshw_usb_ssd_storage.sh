@@ -1,3 +1,4 @@
+#!/bin/bash
 # Step 1: Capture the entire lshw output into a file
 lshw > lshw_output.txt
 
