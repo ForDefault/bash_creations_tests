@@ -1,14 +1,13 @@
 #!/bin/bash
 
-# This system generates substitute commands linking blocks (e.g., $Linput.1) 
-# and descriptors (e.g., product.092.1) with unique identifiers for easy querying and structure.
-# $Linput.1=$(input:1)=$input.1.092 identifies a block called input:1, assigning it a unique ID 
-# of .092.
+# This system generates substitute commands linking blocks (e.g., $Linput_1) 
+# and descriptors (e.g., product_092_1) with unique identifiers for easy querying and structure.
+# $Linput_1=$(input:1)=$input_1_092 identifies a block called input:1, assigning it a unique ID 
+# of _092.
 # Inside this block, descriptors like product and physical_id are numbered sequentially (e.g., 
-# .092.1, .092.2).
-# The descriptors (e.g., product.092.1) are linked to their values, 
-# like output.092.1=$(Power Button) for easy querying.
-
+# _092_1, _092_2).
+# The descriptors (e.g., product_092_1) are linked to their values, 
+# like output_092_1=$(Power Button) for easy querying.
 
 lshw > lshw_output.txt
 input_file="lshw_output.txt"  # Change to the actual file you're using
@@ -32,9 +31,9 @@ while IFS= read -r line; do
 
     # Check if the line starts with *- (i.e., it's a block entry)
     if [[ "$line" == *"*-"* ]]; then
-        # Step 2: Remove the *- prefix and replace ":" with "."
+        # Step 2: Remove the *- prefix and replace ":" with "_"
         clean_line="${line#*-}"
-        clean_line_dot="${clean_line//:/\.}"  # For first and third parts
+        clean_line_underscore="${clean_line//:/_}"  # For first and third parts
 
         # Step 3: Preserve the original form for the middle part using parentheses
         original_middle="\$(${clean_line})"
@@ -43,7 +42,7 @@ while IFS= read -r line; do
         block_id=$(printf "%03d" "$block_counter")
 
         # Step 5: Build the 3-part block substitute command using the original form for the middle
-        substitute_command="\$L${clean_line_dot}=${original_middle}=\$${clean_line_dot}.${block_id}"
+        substitute_command="\$L${clean_line_underscore}=${original_middle}=\$${clean_line_underscore}_${block_id}"
 
         # Step 6: Output the block command with exact spacing
         printf "%*s%s\n" "$spaces" "" "$substitute_command" >> "$output_file"
@@ -72,8 +71,7 @@ while IFS= read -r line; do
                 # Ensure the descriptor name and value are non-empty
                 if [[ ! -z "$clean_descriptor" && ! -z "$descriptor_value" ]]; then
                     # Build the descriptor substitute command
-                    descriptor_command="${clean_descriptor}.${current_block_number}.${descriptor_sub_id}=\$(${clean_descriptor}:) output.${current_block_number}.${descriptor_sub_id}=\$(${descriptor_value})"
-
+                    descriptor_command="${clean_descriptor}_${current_block_number}_${descriptor_sub_id}=\$(${clean_descriptor}:) output_${current_block_number}_${descriptor_sub_id}=\$(${descriptor_value})"
 
                     # Output the descriptor command with exact spacing
                     printf "%*s%s\n" "$spaces" "" "$descriptor_command" >> "$output_file"
