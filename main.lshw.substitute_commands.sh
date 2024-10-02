@@ -58,23 +58,30 @@ while IFS= read -r line; do
         # Reset descriptor counter for new block
         descriptor_counter=1  # Start from 1 for sub-numbering within block
     else
-        # If the line is not a block entry, it's a descriptor line (e.g., description, product)
+        # If the line is not a block entry, process it as a descriptor (if a valid block is present)
         if [[ ! -z "$current_block_id" ]]; then
-            # Generate unique numbering for the descriptor within the current block
-            descriptor_sub_id=$(printf "%d" "$descriptor_counter")
+            # Ensure the line contains a descriptor (has a colon) before processing
+            if [[ "$line" == *":"* ]]; then
+                # Generate unique numbering for the descriptor within the current block
+                descriptor_sub_id=$(printf "%d" "$descriptor_counter")
 
-            # Replace spaces in the descriptor name with underscores
-            clean_descriptor=$(echo "$line" | cut -d':' -f1 | sed 's/^\s*//' | tr ' ' '_')  # Get descriptor name, replace spaces with underscores
-            descriptor_value=$(echo "$line" | cut -d':' -f2- | sed 's/^\s*//')  # Get the descriptor value (after ":")
+                # Get the descriptor name (before the colon) and value (after the colon)
+                clean_descriptor=$(echo "$line" | cut -d':' -f1 | sed 's/^\s*//' | tr ' ' '_')  # Get descriptor name, replace spaces with underscores
+                descriptor_value=$(echo "$line" | cut -d':' -f2- | sed 's/^\s*//')  # Get the descriptor value (after ":")
 
-            # Build the descriptor substitute command: link to block number and descriptor sub-ID
-            descriptor_command="${clean_descriptor}.${current_block_number}.${descriptor_sub_id}=\$(${clean_descriptor}:)output.${current_block_number}.${descriptor_sub_id}=\$(${descriptor_value})"
+                # Ensure the descriptor name and value are non-empty
+                if [[ ! -z "$clean_descriptor" && ! -z "$descriptor_value" ]]; then
+                    # Build the descriptor substitute command
+                    descriptor_command="${clean_descriptor}.${current_block_number}.${descriptor_sub_id}=\$(${clean_descriptor}:) output.${current_block_number}.${descriptor_sub_id}=\$(${descriptor_value})"
 
-            # Output the descriptor command with exact spacing
-            printf "%*s%s\n" "$spaces" "" "$descriptor_command" >> "$output_file"
 
-            # Increment descriptor sub-ID counter
-            descriptor_counter=$((descriptor_counter + 1))
+                    # Output the descriptor command with exact spacing
+                    printf "%*s%s\n" "$spaces" "" "$descriptor_command" >> "$output_file"
+
+                    # Increment descriptor sub-ID counter
+                    descriptor_counter=$((descriptor_counter + 1))
+                fi
+            fi
         fi
     fi
 
@@ -85,11 +92,6 @@ done < "$input_file"
 
 # Output the result to verify the output
 cat "$output_file"
-
-# Clean up and confirm completion
-echo "Substitute commands have been generated and saved in $output_file."
-echo "Spacing data has been saved in $spacing_file."
-
 
 # Clean up and confirm completion
 echo "Substitute commands have been generated and saved in $output_file."
