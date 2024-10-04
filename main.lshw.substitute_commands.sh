@@ -36,13 +36,14 @@ while IFS= read -r line; do
         clean_line_underscore="${clean_line//:/_}"  # For first and third parts
 
         # Step 3: Preserve the original form for the middle part using parentheses
-        original_middle="\$(${clean_line})"
+        # Convert underscores inside parentheses back to spaces and wrap in double quotes
+        wrapped_middle="\"$(echo ${clean_line} | tr '_' ' ')\""  # Convert _ to spaces and wrap in quotes
 
         # Step 4: Generate a unique identifier for the block with leading zeros
         block_id=$(printf "%03d" "$block_counter")
 
-        # Step 5: Build the 3-part block substitute command using the original form for the middle
-        substitute_command="\$L${clean_line_underscore}=${original_middle}=\$${clean_line_underscore}_${block_id}"
+        # Step 5: Condensed logic for block substitute command
+        substitute_command="\$L${clean_line_underscore}_${block_id}=${wrapped_middle}"
 
         # Step 6: Output the block command with exact spacing
         printf "%*s%s\n" "$spaces" "" "$substitute_command" >> "$output_file"
@@ -68,17 +69,18 @@ while IFS= read -r line; do
                 clean_descriptor=$(echo "$line" | cut -d':' -f1 | sed 's/^\s*//' | tr ' ' '_')  # Get descriptor name, replace spaces with underscores
                 descriptor_value=$(echo "$line" | cut -d':' -f2- | sed 's/^\s*//')  # Get the descriptor value (after ":")
 
-                # Ensure the descriptor name and value are non-empty
-                if [[ ! -z "$clean_descriptor" && ! -z "$descriptor_value" ]]; then
-                    # Build the descriptor substitute command
-                    descriptor_command="${clean_descriptor}_${current_block_number}_${descriptor_sub_id}=\$(${clean_descriptor}:) output_${current_block_number}_${descriptor_sub_id}=\$(${descriptor_value})"
+                # Handle wrapping of both descriptor and value in double quotes
+                wrapped_descriptor="\"$(echo ${clean_descriptor} | tr '_' ' '):\""  # Convert underscores back to spaces for the descriptor
+                wrapped_descriptor_value="\"${descriptor_value}\""  # Wrap the value in quotes
 
-                    # Output the descriptor command with exact spacing
-                    printf "%*s%s\n" "$spaces" "" "$descriptor_command" >> "$output_file"
+                # Build the descriptor substitute command
+                descriptor_command="${clean_descriptor}_${current_block_number}_${descriptor_sub_id}=${wrapped_descriptor} output_${current_block_number}_${descriptor_sub_id}=${wrapped_descriptor_value}"
 
-                    # Increment descriptor sub-ID counter
-                    descriptor_counter=$((descriptor_counter + 1))
-                fi
+                # Output the descriptor command with exact spacing
+                printf "%*s%s\n" "$spaces" "" "$descriptor_command" >> "$output_file"
+
+                # Increment descriptor sub-ID counter
+                descriptor_counter=$((descriptor_counter + 1))
             fi
         fi
     fi
@@ -94,3 +96,4 @@ cat "$output_file"
 # Clean up and confirm completion
 echo "Substitute commands have been generated and saved in $output_file."
 echo "Spacing data has been saved in $spacing_file."
+
