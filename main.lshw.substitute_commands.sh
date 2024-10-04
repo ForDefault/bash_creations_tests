@@ -8,9 +8,13 @@
 # _092_1, _092_2).
 # The descriptors (e.g., product_092_1) are linked to their values, 
 # like output_092_1=$(Power Button) for easy querying.
+#!/bin/bash
+
+# This system generates substitute commands linking blocks (e.g., $Linput_1) 
+# and descriptors (e.g., product_092_1) with unique identifiers for easy querying and structure.
 
 lshw > lshw_output.txt
-input_file="lshw_output.txt"  # Change to the actual file you're using
+input_file="lshw_output.txt"  # The file to process
 output_file="substitute_commands.txt"
 spacing_file="spacing_data.txt"
 
@@ -24,16 +28,16 @@ descriptor_counter=0
 current_block_id=""
 current_block_number=""
 
-# Read the cleaned_output.txt file line by line
+# Read the input_file line by line
 while IFS= read -r line; do
-    # Step 1: Capture the exact number of leading spaces (leading whitespaces)
-    spaces=$(echo "$line" | sed -n 's/^\( *\).*/\1/p' | wc -c)
+    # Step 1: Capture the exact number of leading spaces (leading whitespaces) using length of the match
+    spaces=$(echo "$line" | sed -n 's/^\( *\).*/\1/p' | awk '{ print length($0) }')
 
     # Check if the line starts with *- (i.e., it's a block entry)
     if [[ "$line" == *"*-"* ]]; then
         # Step 2: Remove the *- prefix and replace ":" with "_"
         clean_line="${line#*-}"
-        clean_line_underscore="${clean_line//:/_}"  # For first and third parts
+        clean_line_underscore="${clean_line//:/_}"  # Replace ":" with "_"
 
         # Step 3: Preserve the original form for the middle part using parentheses
         # Convert underscores inside parentheses back to spaces and wrap in double quotes
@@ -45,7 +49,7 @@ while IFS= read -r line; do
         # Step 5: Condensed logic for block substitute command
         substitute_command="\$L${clean_line_underscore}_${block_id}=${wrapped_middle}"
 
-        # Step 6: Output the block command with exact spacing
+        # Step 6: Output the block command with the exact spacing
         printf "%*s%s\n" "$spaces" "" "$substitute_command" >> "$output_file"
 
         # Set the current block ID and block number for subsequent lines
@@ -76,7 +80,7 @@ while IFS= read -r line; do
                 # Build the descriptor substitute command
                 descriptor_command="${clean_descriptor}_${current_block_number}_${descriptor_sub_id}=${wrapped_descriptor} output_${current_block_number}_${descriptor_sub_id}=${wrapped_descriptor_value}"
 
-                # Output the descriptor command with exact spacing
+                # Output the descriptor command with the exact spacing
                 printf "%*s%s\n" "$spaces" "" "$descriptor_command" >> "$output_file"
 
                 # Increment descriptor sub-ID counter
@@ -90,11 +94,14 @@ while IFS= read -r line; do
 
 done < "$input_file"
 
+# Ensure that replacements for $L occur without changing spacing
+sed -i 's/\(\s*\)\$L/\1__/g' "$output_file"
+
 # Output the result to verify the output
 cat "$output_file"
 
 # Clean up and confirm completion
-echo "Substitute commands have been generated and saved in $output_file."
-echo "Spacing data has been saved in $spacing_file."
+echo "Substitute commands have been generated and saved in $output_file"
+echo "Spacing data has been saved in $spacing_file"
 
 
