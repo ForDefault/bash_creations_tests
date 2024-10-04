@@ -2,16 +2,6 @@
 
 # This system generates substitute commands linking blocks (e.g., $Linput_1) 
 # and descriptors (e.g., product_092_1) with unique identifiers for easy querying and structure.
-# $Linput_1=$(input:1)=$input_1_092 identifies a block called input:1, assigning it a unique ID 
-# of _092.
-# Inside this block, descriptors like product and physical_id are numbered sequentially (e.g., 
-# _092_1, _092_2).
-# The descriptors (e.g., product_092_1) are linked to their values, 
-# like output_092_1=$(Power Button) for easy querying.
-#!/bin/bash
-
-# This system generates substitute commands linking blocks (e.g., $Linput_1) 
-# and descriptors (e.g., product_092_1) with unique identifiers for easy querying and structure.
 
 lshw > lshw_output.txt
 input_file="lshw_output.txt"  # The file to process
@@ -30,6 +20,11 @@ current_block_number=""
 
 # Read the input_file line by line
 while IFS= read -r line; do
+    # Check and replace UNCLAIMED without affecting quoted "UNCLAIMED"
+    if [[ "$line" == *" UNCLAIMED"* && "$line" != *'"UNCLAIMED"'* ]]; then
+        line=$(echo "$line" | sed 's/ UNCLAIMED/_UNCLAIMED/g')
+    fi
+
     # Step 1: Capture the exact number of leading spaces (leading whitespaces) using length of the match
     spaces=$(echo "$line" | sed -n 's/^\( *\).*/\1/p' | awk '{ print length($0) }')
 
@@ -47,7 +42,7 @@ while IFS= read -r line; do
         block_id=$(printf "%03d" "$block_counter")
 
         # Step 5: Condensed logic for block substitute command
-        substitute_command="\$L${clean_line_underscore}_${block_id}=${wrapped_middle}"
+        substitute_command="__${clean_line_underscore}_${block_id}=${wrapped_middle}"
 
         # Step 6: Output the block command with the exact spacing
         printf "%*s%s\n" "$spaces" "" "$substitute_command" >> "$output_file"
@@ -103,5 +98,6 @@ cat "$output_file"
 # Clean up and confirm completion
 echo "Substitute commands have been generated and saved in $output_file"
 echo "Spacing data has been saved in $spacing_file"
+
 
 
